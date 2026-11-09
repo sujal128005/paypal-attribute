@@ -34,9 +34,29 @@ export const aiLabel = () => providers().map((p) => p.name).join(" → ") || nul
 /** Untrusted text from creators is always fenced and labelled as data. */
 export const fence = (label: string, text: string) => `<${label}>\n${text.replace(/<\/?[a-z_]+>/gi, "")}\n</${label}>`;
 
-export async function complete(p: Provider, system: string, user: string, json: boolean): Promise<string> {
+// Free model line-ups change often. When a configured model is retired, we ask the provider
+// which models exist and switch to the best available one for the rest of the process.
+const resolvedModel = new Map<string, string>();
+const PREFERRED = [/gpt-oss-120b/, /llama-4-maverick/, /llama-4-scout/, /kimi-k2/, /qwen3?-?\d*b?/, /llama-3\.3-70b/, /llama/, /gpt-oss/, /gemini-[\d.]+-flash(?!-lite)/, /gemini.*flash/, /gemini/];
+const NOT_CHAT = /whisper|tts|guard|embed|vision|audio|image|speech|distil|prompt|compound|moderation|safeguard|transcri|orpheus|playai|imagen|veo|aqa/i;
+
+async function discoverModel(p: Provider): Promise<string | null> {
+  const res = await fetch(`${p.baseUrl}/models`, { headers: { Authorization: `Bearer ${p.key}` }, cache: "no-store", signal: AbortSignal.timeout(15_000) });
+  if (!res.ok) return null;
+  const json = (await res.json()) as { data?: { id: string; active?: boolean }[] };
+  const ids = (json.data ?? []).filter((m) => m.active !== false && !NOT_CHAT.test(m.id)).map((m) => m.id.replace(/^models\//, ""));
+  for (const re of PREFERRED) {
+    const hit = ids.find((id) => re.test(id));
+    if (hit) return hit;
+  }
+  return ids[0] ?? null;
+}
+
+const modelOf = (p: Provider) => resolvedModel.get(p.id) ?? p.model;
+
+async function send(p: Provider, model: string, system: string, user: string, json: boolean) {
   const body: Record<string, unknown> = {
-    model: p.model,
+    model,
     temperature: 0.2,
     max_tokens: 1800,
     messages: [
@@ -45,19 +65,40 @@ export async function complete(p: Provider, system: string, user: string, json: 
     ],
   };
   if (json) body.response_format = { type: "json_object" };
-  const res = await fetch(`${p.baseUrl}/chat/completions`, {
+  return fetch(`${p.baseUrl}/chat/completions`, {
     method: "POST",
     headers: { Authorization: `Bearer ${p.key}`, "Content-Type": "application/json" },
     body: JSON.stringify(body),
     cache: "no-store",
     signal: AbortSignal.timeout(25_000),
   });
+}
+
+export async function complete(p: Provider, system: string, user: string, json: boolean): Promise<string> {
+  let model = modelOf(p);
+  let res = await send(p, model, system, user, json);
+  if (!res.ok && (res.status === 404 || res.status === 400)) {
+    const errText = await res.text();
+    if (/model_not_found|does not exist|decommissioned|not found|not supported/i.test(errText)) {
+      const next = await discoverModel(p);
+      if (next && next !== model) {
+        console.warn(`[ai] ${p.name} model "${model}" unavailable, switching to "${next}"`);
+        resolvedModel.set(p.id, next);
+        model = next;
+        res = await send(p, model, system, user, json);
+      } else throw new Error(`${p.name} HTTP ${res.status}: ${errText.slice(0, 200)}`);
+    } else if (json && /response_format|json/i.test(errText)) {
+      res = await send(p, model, system, user, false); // model without JSON mode: rely on prompt + parser
+    } else throw new Error(`${p.name} HTTP ${res.status}: ${errText.slice(0, 200)}`);
+  }
   if (!res.ok) throw new Error(`${p.name} HTTP ${res.status}: ${(await res.text()).slice(0, 200)}`);
   const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
   const text = data.choices?.[0]?.message?.content?.trim();
   if (!text) throw new Error(`${p.name} returned an empty answer`);
   return text;
 }
+
+export const activeModel = (p: Provider) => modelOf(p);
 
 function parseJson(text: string): unknown {
   const start = text.indexOf("{");
