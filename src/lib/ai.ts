@@ -14,12 +14,17 @@ interface Provider {
   model: string;
 }
 
+// Tolerate keys pasted with surrounding spaces or quotes.
+const clean = (v?: string) => (v ?? "").trim().replace(/^["']|["']$/g, "").trim();
+
 export function providers(): Provider[] {
   const list: Provider[] = [];
-  if (process.env.GROQ_API_KEY)
-    list.push({ id: "groq", name: "Groq", baseUrl: process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1", key: process.env.GROQ_API_KEY, model: process.env.GROQ_MODEL || "llama-3.3-70b-versatile" });
-  if (process.env.GEMINI_API_KEY)
-    list.push({ id: "gemini", name: "Gemini", baseUrl: process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/openai", key: process.env.GEMINI_API_KEY, model: process.env.GEMINI_MODEL || "gemini-flash-latest" });
+  const groqKey = clean(process.env.GROQ_API_KEY);
+  const geminiKey = clean(process.env.GEMINI_API_KEY);
+  if (groqKey)
+    list.push({ id: "groq", name: "Groq", baseUrl: process.env.GROQ_BASE_URL || "https://api.groq.com/openai/v1", key: groqKey, model: clean(process.env.GROQ_MODEL) || "llama-3.3-70b-versatile" });
+  if (geminiKey)
+    list.push({ id: "gemini", name: "Gemini", baseUrl: process.env.GEMINI_BASE_URL || "https://generativelanguage.googleapis.com/v1beta/openai", key: geminiKey, model: clean(process.env.GEMINI_MODEL) || "gemini-flash-latest" });
   return list;
 }
 
@@ -29,7 +34,7 @@ export const aiLabel = () => providers().map((p) => p.name).join(" → ") || nul
 /** Untrusted text from creators is always fenced and labelled as data. */
 export const fence = (label: string, text: string) => `<${label}>\n${text.replace(/<\/?[a-z_]+>/gi, "")}\n</${label}>`;
 
-async function complete(p: Provider, system: string, user: string, json: boolean): Promise<string> {
+export async function complete(p: Provider, system: string, user: string, json: boolean): Promise<string> {
   const body: Record<string, unknown> = {
     model: p.model,
     temperature: 0.2,
