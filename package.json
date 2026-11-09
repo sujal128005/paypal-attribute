@@ -1,0 +1,44 @@
+{
+  "name": "paypal-attribute",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Attribution and payout rail for AI-driven commerce, built on the PayPal developer platform.",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20.9"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "mcp": "node mcp/server.mjs",
+    "css": "tailwindcss -i src/app/globals.css -o src/app/styles.css --minify"
+  },
+  "dependencies": {
+    "@fontsource-variable/inter": "5.3.0",
+    "@fontsource-variable/outfit": "5.3.0",
+    "@modelcontextprotocol/sdk": "1.32.2",
+    "ag-charts-community": "14.3.0",
+    "ag-charts-react": "14.3.0",
+    "ag-grid-community": "36.3.0",
+    "ag-grid-react": "36.3.0",
+    "lucide-react": "1.70.0",
+    "next": "15.5.29",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.5",
+    "@tailwindcss/postcss": "4.3.5",
+    "@types/node": "22.20.5",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "tailwindcss": "4.3.5",
+    "tsx": "4.23.15",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}

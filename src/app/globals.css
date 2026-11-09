@@ -1,0 +1,182 @@
+@import "tailwindcss";
+
+@theme {
+  --font-display: "Outfit Variable", "Helvetica Neue", Arial, sans-serif;
+  --font-sans: "Inter Variable", "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-ink: #0a0a0a;
+  --color-navy: #001c64;
+  --color-deep: #002991;
+  --color-blue: #0070e0;
+  --color-blue-hover: #005ea6;
+  --color-sky: #60cdff;
+  --color-sky-soft: #e6f6ff;
+  --color-mist: #edf0f2;
+  --color-cloud: #f6f8fa;
+  --color-line: #e3e7eb;
+  --color-muted: #595959;
+  --color-subtle: #8a8f98;
+  --color-gold: #ffd140;
+  --color-gold-hover: #f2ba36;
+  --color-success: #017a4b;
+  --color-success-soft: #e3f5ec;
+  --color-warn: #a35a00;
+  --color-warn-soft: #fff4e0;
+  --color-danger: #c4122f;
+  --color-danger-soft: #fdecee;
+
+  --radius-card: 1.25rem;
+  --shadow-card: 0 1px 2px rgba(0, 28, 100, 0.04), 0 8px 28px -12px rgba(0, 28, 100, 0.14);
+  --shadow-lift: 0 2px 4px rgba(0, 28, 100, 0.06), 0 24px 48px -20px rgba(0, 28, 100, 0.28);
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  body {
+    @apply bg-white text-ink font-sans;
+    font-size: 16px;
+    line-height: 1.5;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply font-display text-ink;
+    letter-spacing: -0.025em;
+    text-wrap: balance;
+  }
+  :focus-visible {
+    outline: 3px solid var(--color-blue);
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  /* Single-column grids must be able to shrink below their content on phones. */
+  .grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  ::selection {
+    background: var(--color-sky);
+    color: var(--color-ink);
+  }
+}
+
+@layer components {
+  .display-xl {
+    @apply font-display font-extrabold;
+    font-size: clamp(2.6rem, 6.4vw, 4.6rem);
+    line-height: 1.02;
+    letter-spacing: -0.035em;
+  }
+  .display-lg {
+    @apply font-display font-extrabold;
+    font-size: clamp(2rem, 4.4vw, 3.2rem);
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+  .display-md {
+    @apply font-display font-bold;
+    font-size: clamp(1.5rem, 2.6vw, 2rem);
+    line-height: 1.15;
+  }
+  .eyebrow {
+    @apply text-[13px] font-semibold uppercase tracking-[0.12em] text-blue;
+  }
+  .container-page {
+    @apply mx-auto w-full max-w-[1240px] px-4 sm:px-6 lg:px-8;
+  }
+  .card {
+    @apply rounded-[var(--radius-card)] border border-line bg-white;
+    box-shadow: var(--shadow-card);
+  }
+  .card-flat {
+    @apply rounded-[var(--radius-card)] bg-cloud;
+  }
+  .footnote-chip {
+    @apply inline-flex h-[18px] min-w-[18px] -translate-y-[1px] items-center justify-center rounded-full bg-sky-soft px-1 align-middle text-[11px] font-bold text-deep ring-1 ring-sky transition hover:bg-sky;
+  }
+  .input {
+    @apply w-full rounded-xl border border-line bg-white px-3.5 py-2.5 text-[15px] outline-none transition focus:border-ink;
+  }
+  .kbd {
+    @apply rounded-md border border-line bg-cloud px-1.5 py-0.5 font-mono text-[12px];
+  }
+  .code-block {
+    @apply overflow-x-auto rounded-2xl bg-[#0b1426] p-5 font-mono text-[13px] leading-relaxed text-[#d6e2ff];
+  }
+}
+
+/* AG Grid: inherit our fonts inside the grid */
+.ag-theme-attribute {
+  --ag-font-family: "Inter Variable", "Helvetica Neue", Arial, sans-serif;
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(0, 112, 224, 0.45);
+  }
+  100% {
+    box-shadow: 0 0 0 14px rgba(0, 112, 224, 0);
+  }
+}
+@keyframes grow-x {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+.animate-rise {
+  animation: rise 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.animate-pulse-ring {
+  animation: pulse-ring 1.4s ease-out infinite;
+}
+.animate-grow-x {
+  transform-origin: left;
+  animation: grow-x 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+@keyframes dots {
+  0%,
+  80%,
+  100% {
+    opacity: 0.25;
+  }
+  40% {
+    opacity: 1;
+  }
+}
+.typing span {
+  animation: dots 1.2s infinite;
+}
+.typing span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.typing span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
