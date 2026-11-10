@@ -205,7 +205,12 @@ async function finalise(input: SubmitInput, seen: Map<string, Product>): Promise
     kept.push({ sourceId: c.source_id, creatorId: src.creatorId, claim: c.claim, productIds: c.product_ids.filter((id) => products.some((p) => p.id === id)) });
     renumber.set(i + 1, kept.length);
   });
-  const answer = input.answer.replace(/\[(\d+)\]/g, (m, n) => (renumber.has(Number(n)) ? `[${renumber.get(Number(n))}]` : ""));
+  let answer = input.answer.replace(/\[(\d+)\]/g, (m, n) => (renumber.has(Number(n)) ? `[${renumber.get(Number(n))}]` : ""));
+  // If the model forgot inline markers, attach them to the first paragraph so every source stays visible.
+  if (kept.length && !/\[\d+\]/.test(answer)) {
+    const [first, ...rest] = answer.split(/\n{2,}/);
+    answer = [`${first.trim()} ${kept.map((_, i) => `[${i + 1}]`).join("")}`, ...rest].join("\n\n");
+  }
   if (!products.length) return runRulesAgent(input.answer);
   return { answer, productIds: products.map((p) => p.id), citations: kept, engine: "ai", products };
 }

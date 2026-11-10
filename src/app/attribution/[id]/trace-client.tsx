@@ -65,7 +65,7 @@ export function TraceClient({ initial, paypalLive }: { initial: SaleDetail; payp
       meta: att.engine === "ai" ? `AI agent (${att.provider ?? "AI"})` : "Agent",
       body: (
         <div className="rounded-2xl bg-cloud p-4">
-          {att.answer.includes("[") ? <AnswerText text={att.answer} footnotes={footnotes} /> : <p className="text-[15px] text-[#3c4043]">{att.answer}</p>}
+          <AnswerText text={att.answer} footnotes={footnotes} />
           <div className="mt-3 flex flex-wrap gap-2">
             {footnotes.map((f) => (
               <span key={f.n} className="inline-flex max-w-full items-center gap-2 rounded-full bg-white py-1 pl-1 pr-3 text-[13px] ring-1 ring-line">
