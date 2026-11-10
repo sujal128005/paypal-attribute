@@ -6,7 +6,7 @@ import { scoreWithRules, screenWithRules } from "./scoring";
 import type { Category, Citation, Database, Source } from "./types";
 import { rng, usd } from "./util";
 
-export const SEED_VERSION = 9;
+export const SEED_VERSION = 10;
 export const DEMO_API_KEY = "pa_test_demo_7kq2vx9mn4pr8st1wz";
 
 const QUERIES: Record<Category, string[]> = {
@@ -101,8 +101,16 @@ export function buildSeed(): Database {
     const scored = scoreWithRules({ attribution: att, purchased: product, sources: state.sources, creators: state.creators });
     applySplit(state, sale.id, scored, "rules", sale.capturedAt);
 
-    // Payouts older than the hold window have already been sent in batches.
+    // A few historical refunds, all inside the return window: earnings are reversed before
+    // payout, so no creator starts the demo owing a clawback.
     const releaseMinutes = 60 * 24 * 2;
+    if (i === 12 || i === 33 || i === 58 || i === 101 || i === 140) {
+      for (const p of state.payouts.filter((x) => x.saleId === sale.id)) p.releaseAt = new Date(new Date(sale.capturedAt).getTime() + releaseMinutes * 60_000).toISOString();
+      applyRefund(state, sale.id, at(Math.max(5, minutesAgo - 60 * 24)));
+      continue;
+    }
+
+    // Payouts older than the hold window have already been sent in batches.
     for (const p of state.payouts.filter((x) => x.saleId === sale.id)) {
       const creator = state.creators.find((c) => c.id === p.creatorId)!;
       p.releaseAt = new Date(new Date(sale.capturedAt).getTime() + releaseMinutes * 60_000).toISOString();
@@ -117,8 +125,6 @@ export function buildSeed(): Database {
         p.note = "Return window: releases 48 h after capture";
       }
     }
-    // A few refunds: some inside the window (reversal), one after payout (clawback).
-    if (i === 12 || i === 33 || i === 58 || i === 101 || i === 140) applyRefund(state, sale.id, at(Math.max(10, minutesAgo - 60 * 24 * 3)));
   }
 
   // A live review case: one buyer converting through the same creator four times in a few hours.

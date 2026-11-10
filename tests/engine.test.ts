@@ -13,6 +13,12 @@ describe("seeded history", () => {
     }
   });
 
+  it("starts with no creator owing a clawback", () => {
+    const debt = db.ledger.filter((l) => l.type === "clawback").length;
+    expect(debt).toBe(0);
+    expect(db.sales.filter((s) => s.status === "refunded").length).toBeGreaterThan(0);
+  });
+
   it("never pays a blocked source", () => {
     const spamPayouts = db.payouts.filter((p) => p.creatorId === "cr_dealvault");
     expect(spamPayouts).toHaveLength(0);
