@@ -191,7 +191,7 @@ export function TraceClient({ initial, paypalLive }: { initial: SaleDetail; payp
     },
     {
       icon: allSent ? Send : Clock,
-      title: allSent ? "Paid via PayPal Payouts" : sale.status === "refunded" ? "Payouts unwound" : "Payouts on hold for the return window",
+      title: allSent ? (payouts.every((p) => p.mode === "paypal") ? "Paid via PayPal Payouts" : "Paid (simulated payout batch)") : sale.status === "refunded" ? "Payouts unwound" : "Payouts on hold for the return window",
       tone: allSent ? "done" : sale.status === "refunded" ? "danger" : payouts.length ? "active" : "done",
       meta: batches.length ? `Batch ${batches.join(", ")}` : undefined,
       body: payouts.length ? (

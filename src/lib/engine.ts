@@ -1,7 +1,7 @@
 // The attribution engine: citations → sale → AI-scored split → held payouts → PayPal Payouts,
 // with refunds driving reversals and clawbacks. Every money movement writes a ledger entry.
 import { aiConfigured, scoreInfluenceAI, screenContentAI } from "./ai";
-import { createPayoutBatch, paypalConfigured } from "./paypal";
+import { createPayoutBatch, PayPalError, paypalConfigured } from "./paypal";
 import { assessRisk } from "./risk";
 import { scoreWithRules, screenWithRules, type ScoredSource } from "./scoring";
 import { computeSplit, type SplitCandidate } from "./split";
@@ -259,9 +259,11 @@ export async function releaseDuePayouts(opts: { force?: boolean; saleId?: string
     groups.set(mode, [...(groups.get(mode) ?? []), p]);
   }
   const batches: { batchId: string; mode: string; count: number; total: number }[] = [];
-  for (const [mode, items] of groups) {
+  for (const [requestedMode, items] of groups) {
+    let mode: "paypal" | "simulated" = requestedMode;
     let batchId = `SIM-${randomId("B", 10).slice(2)}`;
     let failed: string | undefined;
+    let fallbackNote: string | undefined;
     if (mode === "paypal") {
       try {
         const res = await createPayoutBatch({
@@ -274,7 +276,15 @@ export async function releaseDuePayouts(opts: { force?: boolean; saleId?: string
         });
         batchId = res.batch_header.payout_batch_id;
       } catch (err) {
-        failed = (err as Error).message;
+        const msg = (err as Error).message;
+        // Account-level blocks (e.g. Payouts not permitted for the sandbox merchant's country)
+        // will never succeed on retry: settle in the simulated ledger and say why, instead of
+        // leaving creators stuck on hold. Transient errors (5xx, network) keep retrying.
+        const permanent = err instanceof PayPalError && (err.status === 401 || err.status === 403 || err.status === 422 || /not allowed|permission|not enabled|not authori|country/i.test(msg));
+        if (permanent) {
+          mode = "simulated";
+          fallbackNote = `Simulated batch: PayPal Payouts is not available for this sandbox merchant account (${msg})`;
+        } else failed = msg;
       }
     }
     await mutate((state) => {
@@ -288,7 +298,7 @@ export async function releaseDuePayouts(opts: { force?: boolean; saleId?: string
         p.status = "sent";
         p.sentAt = now();
         p.batchId = batchId;
-        if (!p.note?.includes("netted")) p.note = undefined;
+        if (!p.note?.includes("netted")) p.note = fallbackNote;
         p.mode = mode;
         ledger(state, { type: "payout_sent", amount: -p.amount, creatorId: p.creatorId, payoutId: p.id, saleId: p.saleId, memo: `${mode === "paypal" ? "PayPal Payouts" : "Simulated payout"} batch ${batchId}` });
       }
