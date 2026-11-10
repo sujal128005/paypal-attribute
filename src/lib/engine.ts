@@ -288,6 +288,7 @@ export async function releaseDuePayouts(opts: { force?: boolean; saleId?: string
         p.status = "sent";
         p.sentAt = now();
         p.batchId = batchId;
+        if (!p.note?.includes("netted")) p.note = undefined;
         p.mode = mode;
         ledger(state, { type: "payout_sent", amount: -p.amount, creatorId: p.creatorId, payoutId: p.id, saleId: p.saleId, memo: `${mode === "paypal" ? "PayPal Payouts" : "Simulated payout"} batch ${batchId}` });
       }
